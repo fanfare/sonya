@@ -1,0 +1,379 @@
+<!doctype html>
+<html>
+<head><title>sonya</title>
+<style>
+.item {
+  border:1px solid blue;
+  padding:3px;
+  display:inline-block;
+  margin:10px;
+  position:relative
+}
+.stats {
+  display:flex;
+  flex-direction:row;
+  margin-top:10px;
+}
+.stats button {
+  flex-grow:1
+}
+span {
+  border:1px solid #bbb;
+  border-radius:2px 2px 6px 6px;
+  padding:2px 4px;
+}
+.hide {
+  display:none
+}
+.cloak {
+  opacity:0!important
+}
+#search {
+  opacity:1;
+  transition:opacity .1s ease-in-out
+}
+.consider {
+  margin-left:3px;
+  transition:all .25s ease-in-out
+}
+.blip .consider {
+  background:rgba(255,200,233,1);
+  border:1px solid rgba(140,80,100,0.6)
+}
+#autopilot.active {
+  background: rgb(209, 214, 255);
+  border: 1px solid rgba(13, 0, 140, 0.6);
+}
+.blip.done .consider {
+  background:rgba(0,255,166,1);
+  border:1px solid rgba(0,140,120,0.6)  
+}
+.err .consider {
+  background:rgba(255,255,166,1)!important;
+  border:1px solid rgba(155,140,120,0.6)!important
+}
+button {
+  background:linear-gradient(#f7f7f7,#ddd);
+  border:1px solid #999;
+  padding:3px 6px;
+  user-select:none
+}
+button:active {
+  background:linear-gradient(#ddd,#f7f7f7);  
+}
+* {
+  outline:none!important
+}
+.snub {
+  display:none!important
+}
+.item img {
+  cursor:pointer
+}
+.item.fadeout {
+  opacity:0
+}
+.item.fadeout img {
+  cursor:default;
+  pointer-events:none
+}
+.item {
+  opacity:1;
+  transition:opacity .1s ease-in-out
+}
+.item img:hover {
+  filter:contrast(95%) brightness(110%)
+}
+#cloak {
+  position:fixed;
+  width:100vw;
+  height:100vh;
+  background:rgba(255,255,255,1);
+  top:0;
+  left:0;
+  cursor:pointer;
+  display:flex;
+  flex-direction:row;
+  justify-content:center;
+  align-items:center;
+  transition:background .2s ease-in-out
+}
+
+#cloak img {
+
+}
+</style>
+</head>
+<body>
+<div style="display:flex;flex-direction:row">
+  <div style="flex-grow:1">
+    <button onclick="undo()">A undo</button> 
+    <button id="autopilot" onclick="startplaying()">D autopilot</button> 
+    <button onclick="manualswap()">F reload</button>
+  </div>
+</div>
+<hr>
+<div id="search"></div>
+<script>
+function randint(min, max) {
+  return ~~(Math.random() * (max - min + 1)) + min
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function uniquepush(item, oldarray) {
+  if (oldarray.indexOf(item) === -1) {
+    oldarray.push(item)
+  }
+  return oldarray
+}  
+
+let cloakopen = false
+function preview(id) {
+  cloakopen = true
+  document.body.insertAdjacentHTML("beforeend", `
+    <div id="cloak" onclick="closecloak()">
+      <img src="https://images.artsonia.com/art/${id}.jpg?maxwidth=730&maxheight=520"></img>
+    </div>  
+  `)
+  setTimeout(()=>{
+    cloak.classList.add("fade")
+  },0)
+}
+
+function closecloak() {
+  cloakopen = false
+  cloak.remove()
+}
+</script>
+<script>
+function adjacent(rand, arg) {
+  var width = arg === "hide" ? 230 : 140
+  var height = arg === "hide" ? 160 : 90
+  var neartext = arg === "hide" ? `<button onclick="nearby(${rand})" class="nearby">nearby</button>` : ``
+  search.insertAdjacentHTML("beforeend", `
+    <div class="item ${arg}" data-id="${rand}">
+      <div class="image"><img onclick="preview(${rand})" onerror="selfdestruct(${rand})" src="https://images.artsonia.com/art/${rand}.jpg?maxwidth=${width}&maxheight=${height}"></div>
+      <div class="stats">
+        ${neartext}<button class="consider" onclick="save(${rand})" class="save">save</button>
+      </div>
+    </div>
+  `)  
+}
+
+var timer = null
+var playing = false
+
+async function autoswap() {
+  await swap()  
+  timer = setTimeout(()=>{
+    if (playing) {
+      autoswap()
+    }
+  }, 1600)
+}
+
+
+
+var walkingback = false
+
+var lastitems = []
+
+let keyready = true
+
+function stopplaying() {
+  if (!playing) {
+    return
+  }
+  autopilot.classList.remove("active")
+  playing = false
+  clearTimeout(timer)
+  keyready = true
+  return  
+}
+
+function startplaying() {
+  if (playing) {
+    console.log("asdf")
+    stopplaying()
+    return
+  }
+  console.log("asffffdf")
+  autopilot.classList.add("active")
+  clearTimeout(timer)
+  playing = true
+  autoswap()
+}
+
+async function undo() {
+  if (playing) {
+    stopplaying()
+    return
+  }  
+  walkingback = true
+  await swap()  
+}
+
+window.addEventListener("keyup", async function(e) {
+  if (keyready) {
+    keyready = false
+    if (playing) {
+      
+      stopplaying()
+      return
+    }    
+    
+    if (e.code === "KeyF") {
+      if (cloakopen) {
+        closecloak()
+      }
+      else {
+        await manualswap()
+      }
+    }
+    else if (e.code === "KeyA") {
+      undo()
+    }
+    else if (e.code === "KeyD") {
+      startplaying()
+    }
+    keyready = true
+  }
+})
+
+let count = 0
+function add(id) {
+  if (!localStorage.getItem("considered")) {
+    localStorage.setItem("considered", "[]")
+  }
+  let considered = JSON.parse(localStorage.getItem("considered"))
+  considered = JSON.stringify(uniquepush(id, considered))
+  localStorage.setItem("considered", considered)
+}
+
+function save(id) {
+  document.querySelectorAll(`.item[data-id="${id}"]`)[0].classList.remove("err")  
+  document.querySelectorAll(`.item[data-id="${id}"]`)[0].classList.add("blip")  
+  console.log(id)
+  let xhr = new XMLHttpRequest()
+  
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4) {
+      if (xhr.status === 200) {
+        document.querySelectorAll(`.item[data-id="${id}"]`)[0].classList.add("done")  
+      }
+      else {
+        document.querySelectorAll(`.item[data-id="${id}"]`)[0].classList.add("err")  
+      }
+    }
+  }  
+  xhr.open('POST', 'http://localhost:10327/save', true)
+  xhr.send(JSON.stringify({url:`http://images.artsonia.com/art/${id}.jpg`, file:id}))
+    
+}
+
+function consider(id) {
+  add(id)
+
+}
+
+function nearby(id) {
+  var offset = id - 8
+  for (let i=0;i<16;i++) {
+    if (i === 8) {
+      continue
+    }
+    var rand = offset + i
+    adjacent(rand, "nearadded")
+  }
+}
+
+function selfdestruct(id) {
+  document.querySelectorAll(`.item[data-id="${id}"]`)[0].classList.add("snub")
+}
+
+var walkback = 0
+
+
+function append() {
+  for (let i=0;i<8;i++) {
+    var rand
+    if (walkingback) {
+      rand = lastitems[walkback]
+      walkback++
+    }
+    else {
+      rand = randint(1,40000000)
+    }
+    adjacent(rand, "hide")
+  }
+}
+for (let i=0;i<2;i++) {
+  append()
+}
+
+function unhide() {
+  for (let i=0;i<8;i++) {
+    var item = document.querySelectorAll(".item")[i]
+    item.classList.remove("hide")
+  }
+}
+unhide()
+
+async function manualswap() {
+  if (playing) {
+    console.log("stopplaying")
+    stopplaying()
+    return
+  }  
+  await swap()
+}
+
+async function swap() {
+
+  if (!walkingback) {
+    lastitems = []
+  }
+  if (walkingback && lastitems.length === 0) {
+    walkingback = false
+    return
+  }
+  search.classList.add("cloak")
+  await sleep(100)
+  var nearbys = document.querySelectorAll(".nearadded")
+  for (let i=0;i<nearbys.length;i++) {
+    nearbys[i].remove()
+  }
+  for (let i=0;i<8;i++) {
+    var item = document.querySelectorAll(".item")[0]
+    var id = item.dataset.id
+    lastitems.push(id)
+    item.remove()
+  }
+  if (walkingback) {
+    for (let i=0;i<8;i++) {
+      var item = document.querySelectorAll(".item")[0]
+      item.remove()
+    }    
+  }
+  if (!walkingback) {
+    unhide()
+  }
+  append()
+  if (walkingback) {
+    append()
+    unhide()
+  }
+  if (walkingback) {
+    walkback = 0
+    walkingback = false
+    lastitems = []
+  }
+  search.classList.remove("cloak")
+  await sleep(100)  
+}
+</script>
+</body>
+</html>

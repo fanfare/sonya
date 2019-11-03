@@ -1,6 +1,6 @@
 sonya
 ---
-sonya is an artsonia image browser that runs locally on your computer.
+![sonya](https://i.imgur.com/r7X7ezm.png)
 
 #### install
 
@@ -12,4 +12,4 @@ sonya is an artsonia image browser that runs locally on your computer.
 
     node server
 
-now open `http://localhost:10588`
+now open `http://sonya.jollo.org`

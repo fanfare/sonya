@@ -1,5 +1,5 @@
 const http = require('http')
-const port = '10588'
+const port = '10327'
 const fs = require('fs')
 if (!fs.existsSync('./images/')) {
   fs.mkdirSync('./images/')
@@ -11,7 +11,10 @@ app.on('request', (req, res) => {
   let method = req.method.toLowerCase()
   let ip = req.remoteAddress
   let url = req.url
-  if (method === "post" && url === "/save") {
+  if (method === "get") {
+    res.end(fs.readFileSync(__dirname + "/index.html"))
+  }
+  else if (method === "post" && url === "/save") {
     let body = '';
     req.on('data', chunk => {
         body += chunk.toString()
