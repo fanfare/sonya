@@ -12,4 +12,4 @@ sonya
 
     node server
 
-now open `http://sonya.jollo.org`
+now open `http://localhost:10327`
